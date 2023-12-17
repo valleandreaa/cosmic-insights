@@ -1,55 +1,80 @@
-import requests
 import boto3
 import json
-from datetime import datetime
+import requests
+import time
+from datetime import datetime, timedelta
 
-# Fetcher for the API
-def fetcher(data):
-    asteroids = {
-        'id': int(data['id']),
-        'name': data['name'],
-        'nasa_jpl_url': data['nasa_jpl_url'],
-        'absolute_magnitude_h': data['absolute_magnitude_h'],
-        'estimated_diameter': data['estimated_diameter'],
-        'is_potentially_hazardous_asteroid': data['is_potentially_hazardous_asteroid'],
-        'close_approach_data': data['close_approach_data'],  
-        'orbital_data': data['orbital_data'],
-        'is_sentry_object': data['is_sentry_object']
-    }
-    return asteroids
+# NASA API Key
+API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
+
+# S3-Buckets Name
+BUCKET_NAME = "swagger23"
+
+# Get the current date and time
+current_datetime = datetime.utcnow()
+
+
+def get_neo_data(page=0, sleep_duration=5):
+    if page % 1000 == 0 and page > 0:
+        print(f"Wait {61 * 60} seconds (=1h 1min) until limit resets")
+        time.sleep(61 * 60)  # more than 1h
+    try:
+        with requests.Session() as session:
+            # Make the request
+            url = f"https://api.nasa.gov/neo/rest/v1/neo/browse?api_key={API_KEY}&page={page}"
+            response = session.get(url)
+            response.raise_for_status()
+
+            # Return the JSON data if successful
+            return response.json()
+    except requests.exceptions.HTTPError as e:
+        print(f"For {url}: {e.response.status_code}")
+        if e.response.status_code == 429:
+            print(f"Too Many Requests. Waiting for {sleep_duration} seconds...")
+            time.sleep(sleep_duration)
+        else:
+            print("Unexpected HTTP error. Retrying in 5 seconds...")
+            time.sleep(sleep_duration)
+        print(f"Error response content: {e.response.text}")
+        print("Retrying...")
+        return get_neo_data(page, sleep_duration * 2)
+
+
+def last_updated_neos(neos, today):
+    return [
+        neo for neo in neos if 'orbital_data' in neo and
+                               'last_observation_date' in neo['orbital_data'] and
+                               neo['orbital_data']['last_observation_date'] == today
+    ]
+
 
 def lambda_handler(event, context):
-    # Ihr API-Schlüssel für die NASA-API
-    api_key = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
+    # Due to time shift and ongoing process, we want to have all the changes from 2 days ago
+    get_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
     near_earth_objects = []
 
-    # Anzahl der abzurufenden Seiten
-    number_batches = 10
+    # Get total number of page
+    total_page = get_neo_data()['page']['total_pages']
 
-    # Daten von der NASA API abrufen
-    for i in range(number_batches):
-        url = f"https://api.nasa.gov/neo/rest/v1/neo/browse?page={i}&size=20&api_key={api_key}"
-        r = requests.get(url)
-        data = r.json()
-        near_earth_objects.extend(data['near_earth_objects'])
+    # Get all asteroids which got updated
+    for i in range(total_page):
+        print(f"page: {i}")
+        neos = get_neo_data(i)['near_earth_objects']
+        near_earth_objects.extend(last_updated_neos(neos, get_date))
 
-    # Verarbeiten Sie die abgerufenen Daten
-    list_asteroids = [fetcher(obj) for obj in near_earth_objects]
+    print(f"Count number of changes: {len(near_earth_objects)}")
 
-    # Der Name Ihres S3-Buckets
-    BUCKET_NAME = "swagger11"
+    # Convert list to json
+    data_string = json.dumps(near_earth_objects, indent=2)
 
-    # Daten in einen String umwandeln (JSON-Format)
-    data_string = json.dumps(list_asteroids)
-
-    # Erzeugen Sie einen Dateinamen mit dem aktuellen Datum und Uhrzeit
-    date_str = datetime.utcnow().strftime("%Y-%m-%dT%H-%M-%SZ")
+    # Create a filename with current date
+    date_str = current_datetime.strftime("%Y-%m-%dT%H-%M-%SZ")
     filename = f"nasa-data-{date_str}.json"
 
-    # Initialisieren Sie einen S3 Client
+    # Initialising S3 Client
     s3_client = boto3.client('s3')
 
-    # Versuchen Sie, die Daten in den S3-Bucket hochzuladen
+    # Try to upload data into S3-Bucket
     try:
         s3_client.put_object(Bucket=BUCKET_NAME, Key=filename, Body=data_string)
         print(f"Successfully uploaded {filename} to {BUCKET_NAME}")
@@ -64,6 +89,11 @@ def lambda_handler(event, context):
             'body': json.dumps("Error uploading the file")
         }
 
+
 # Test the function
 if __name__ == "__main__":
-    print(lambda_handler(None, None))
+    start_time = time.time()
+    lambda_handler(None, None)
+    end_time = time.time()
+    execution_time_ms = (end_time - start_time) * 1000
+    print(f"Execution time: {execution_time_ms} ms")
