@@ -1,74 +1,72 @@
 import torch
 import torch.nn as nn
-import numpy as np
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
 
+def forecast_solar_wind(df_solar_wind_mag, sequence_length=10, hidden_size=64, num_layers=2, num_epochs=3, num_steps_ahead=5):
+    df_solar_wind_mag = df_solar_wind_mag[['bx_gsm']]
+    scaler = MinMaxScaler()
+    scaled_data = scaler.fit_transform(df_solar_wind_mag)
 
-class MultiInputForecast:
-    def __init__(self, data):
-        self.data = data
-        self.features = list(data.columns)
-        self.model = self._build_model()
+    def create_sequences(data, seq_length):
+        sequences = []
+        for i in range(len(data) - seq_length):
+            sequence = data[i: i + seq_length]
+            sequences.append(sequence)
+        return np.array(sequences)
 
-    # Rest of the class methods...
+    sequences = create_sequences(scaled_data, sequence_length)
+    X = sequences[:, :-1]
+    y = sequences[:, -1][:, -1]
+    X = torch.from_numpy(X).float()
+    y = torch.from_numpy(y).float()
 
-    def _build_model(self):
-        class LSTM(nn.Module):
-            def __init__(self, input_size, hidden_layer_size, output_size):
-                super().__init__()
-                self.hidden_layer_size = hidden_layer_size
-                self.lstm = nn.LSTM(input_size, hidden_layer_size)
-                self.linear = nn.Linear(hidden_layer_size, output_size)
-                self.hidden_cell = (torch.zeros(1, 1, self.hidden_layer_size),
-                                    torch.zeros(1, 1, self.hidden_layer_size))
+    class LSTM(nn.Module):
+        def __init__(self, input_size, hidden_size, num_layers, output_size):
+            super(LSTM, self).__init__()
+            self.hidden_size = hidden_size
+            self.num_layers = num_layers
+            self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+            self.fc = nn.Linear(hidden_size, output_size)
 
-            def forward(self, input_seq):
-                lstm_out, self.hidden_cell = self.lstm(input_seq.view(len(input_seq), 1, -1), self.hidden_cell)
-                predictions = self.linear(lstm_out.view(len(input_seq), -1))
-                return predictions[-1]
+        def forward(self, x):
+            h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+            c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+            out, _ = self.lstm(x, (h0, c0))
+            out = self.fc(out[:, -1, :])
+            return out
 
-        # Determine input size based on the number of features
-        input_size = len(self.features)
-        model = LSTM(input_size, hidden_layer_size=100, output_size=1)
-        return model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = LSTM(input_size=len(df_solar_wind_mag.columns), hidden_size=hidden_size, num_layers=num_layers, output_size=1).to(device)
 
-    # Rest of the methods...
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    def train_model(self, epochs=150):
-        loss_function = nn.MSELoss()
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+    for epoch in range(num_epochs):
+        model.train()
+        outputs = model(X.to(device))
+        optimizer.zero_grad()
+        loss = criterion(outputs.view(-1), y.to(device))
+        loss.backward()
+        optimizer.step()
 
-        for i in range(epochs):
-            for seq, labels in zip(self.train_data, self.test_data):
-                optimizer.zero_grad()
-                self.model.hidden_cell = (
-                    torch.zeros(1, 1, self.model.hidden_layer_size),
-                    torch.zeros(1, 1, self.model.hidden_layer_size)
-                )
+        if (epoch + 1) % 10 == 0:
+            print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
 
-                y_pred = self.model(seq)
-                single_loss = loss_function(y_pred, labels)
-                single_loss.backward()
-                optimizer.step()
+    model.eval()
+    with torch.no_grad():
+        future_sequence = X[-1].unsqueeze(0)
+        future_sequence = future_sequence.to(device)
+        future_predictions = []
 
-            if i % 25 == 1:
-                print(f'Epoch: {i + 1:3} Loss: {single_loss.item():10.8f}')
+        for _ in range(num_steps_ahead):
+            future_prediction = model(future_sequence)
+            future_predictions.append(future_prediction.cpu().numpy()[0, 0])
+            new_input = torch.cat((future_sequence[:, 1:, :], future_prediction.unsqueeze(1)), dim=1)
+            future_sequence = new_input
 
+        future_predictions = scaler.inverse_transform([future_predictions])
+        predictions_df = pd.DataFrame(future_predictions.T, columns=['Predicted_Values'])
 
-def forecast_combined_features(self, future=50):
-        self.model.eval()
-        test_inputs = self.test_data[-1].tolist()
-
-        for i in range(future):
-            seq = torch.FloatTensor(test_inputs[-self.sequence_length:])
-            with torch.no_grad():
-                self.model.hidden = (
-                    torch.zeros(1, 1, self.model.hidden_layer_size),
-                    torch.zeros(1, 1, self.model.hidden_layer_size)
-                )
-                test_inputs.append(self.model(seq).item())
-
-        actual_predictions = self.scaler.inverse_transform(np.array(test_inputs[self.sequence_length:]).reshape(-1, 1))
-        return actual_predictions
+    return predictions_df
