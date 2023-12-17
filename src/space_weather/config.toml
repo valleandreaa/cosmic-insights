@@ -1,0 +1,5 @@
+[PATHS]
+solar_wind_mag= "https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json"
+solar_wind_plasma= "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json"
+magnetometers = "https://services.swpc.noaa.gov/json/goes/primary/magnetometers-1-day.json"
+protons = "https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json"
