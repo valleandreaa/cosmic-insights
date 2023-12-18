@@ -15,9 +15,6 @@ current_datetime = datetime.utcnow()
 
 
 def get_neo_data(page=0, sleep_duration=5):
-    if page % 1000 == 0 and page > 0:
-        print(f"Wait {61 * 60} seconds (=1h 1min) until limit resets")
-        time.sleep(61 * 60)  # more than 1h
     try:
         with requests.Session() as session:
             # Make the request
@@ -54,10 +51,10 @@ def lambda_handler(event, context):
     near_earth_objects = []
 
     # Get total number of page
-    total_page = 1000
+    #total_page = get_neo_data()['page']['total_pages']
     
     # Get all asteroids which got updated
-    for i in range(0, total_page):
+    for i in range(1001, 2000):
         print(f"page: {i}")
         neos = get_neo_data(i)['near_earth_objects']
         near_earth_objects.extend(last_updated_neos(neos, get_date))
@@ -97,4 +94,3 @@ if __name__ == "__main__":
     end_time = time.time()
     execution_time_ms = (end_time - start_time) * 1000
     print(f"Execution time: {execution_time_ms} ms")
-
