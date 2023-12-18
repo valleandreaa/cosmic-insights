@@ -1,18 +1,24 @@
 import boto3
 import json
 import requests
-from datetime import datetime
 import time
+from datetime import datetime
 
 # S3-Buckets Name
 BUCKET_NAME = "swagger23"
 
-def get_spaceflight_data(url, sleep_duration=5):
+# Get the current date and time
+current_datetime = datetime.utcnow()
+
+
+def get_data(url, sleep_duration=5):
     try:
         with requests.Session() as session:
+            # Make the request
             response = session.get(url)
             response.raise_for_status()
 
+            # Return the JSON data if successful
             return response.json()
     except requests.exceptions.HTTPError as e:
         print(f"For {url}: {e.response.status_code}")
@@ -24,36 +30,43 @@ def get_spaceflight_data(url, sleep_duration=5):
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
-        return get_spaceflight_data(url, sleep_duration * 2)
+        return get_data(url, sleep_duration * 2)
 
-def process_content(content_type, endpoint_url):
+
+def process_content(content_type):
     all_content = []
-    next_url = endpoint_url + "?limit=100"
-    
-    while next_url:
-        print(f"Processing {content_type}: {next_url}")
-        page_data = get_spaceflight_data(next_url)
+    url = f"https://api.spaceflightnewsapi.net/v4/{content_type}?limit=500"
+
+    while url:
+        print(f"Processing {content_type}: {url}")
+        page_data = get_data(url)
         if 'results' in page_data:
             all_content.extend(page_data['results'])
 
-        next_url = page_data.get('next', None)
+        url = page_data.get('next', None)
 
     print(f"Total number of {content_type} collected: {len(all_content)}")
     return all_content
 
+
 def lambda_handler(event, context):
-    combined_content = {
-        "articles": process_content("articles", "https://api.spaceflightnewsapi.net/v4/articles"),
-        "blogs": process_content("blogs", "https://api.spaceflightnewsapi.net/v4/blogs"),
-        "reports": process_content("reports", "https://api.spaceflightnewsapi.net/v4/reports")
+    all_content = {
+        "articles": process_content("articles"),
+        "blogs": process_content("blogs"),
+        "reports": process_content("reports")
     }
 
-    data_string = json.dumps(combined_content, indent=2)
-    filename = f"spaceflight-content-{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%SZ')}.json"
+    # Convert list to json
+    data_string = json.dumps(all_content, indent=2)
+
+    # Create a filename with current date
+    date_str = current_datetime.strftime("%Y-%m-%dT%H")
+    filename = f"space-news-data-all-{date_str}.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')
 
+    # Try to upload data into S3-Bucket
     try:
         s3_client.put_object(Bucket=BUCKET_NAME, Key=filename, Body=data_string)
         print(f"Successfully uploaded {filename} to {BUCKET_NAME}")
@@ -68,7 +81,11 @@ def lambda_handler(event, context):
             'body': json.dumps("Error uploading the file")
         }
 
+
 # Test the function
 if __name__ == "__main__":
+    start_time = time.time()
     lambda_handler(None, None)
-
+    end_time = time.time()
+    execution_time_ms = (end_time - start_time) * 1000
+    print(f"Execution time: {execution_time_ms} ms")
