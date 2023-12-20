@@ -4,9 +4,6 @@ import requests
 import time
 from datetime import datetime, timedelta
 
-# NASA API Key
-API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
-
 # S3-Buckets Name
 BUCKET_NAME = "swagger23"
 
@@ -14,14 +11,10 @@ BUCKET_NAME = "swagger23"
 current_datetime = datetime.utcnow()
 
 
-def get_neo_data(page=0, sleep_duration=5):
-    if page % 1000 == 0 and page > 0:
-        print(f"Wait {61 * 60} seconds (=1h 1min) until limit resets")
-        time.sleep(61 * 60)  # more than 1h
+def get_data(url, sleep_duration=5):
     try:
         with requests.Session() as session:
             # Make the request
-            url = f"https://api.nasa.gov/neo/rest/v1/neo/browse?api_key={API_KEY}&page={page}"
             response = session.get(url)
             response.raise_for_status()
 
@@ -37,39 +30,39 @@ def get_neo_data(page=0, sleep_duration=5):
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
-        return get_neo_data(page, sleep_duration * 2)
+        return get_data(url, sleep_duration * 2)
 
 
-def last_updated_neos(neos, today):
-    return [
-        neo for neo in neos if 'orbital_data' in neo and
-                               'last_observation_date' in neo['orbital_data'] and
-                               neo['orbital_data']['last_observation_date'] == today
-    ]
+def process_content(content_type):
+    all_content = []
+    target_time = (current_datetime - timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M")
+    url = f"https://api.spaceflightnewsapi.net/v4/{content_type}?published_at_gte={target_time}&limit=500"
+
+    while url:
+        print(f"Processing {content_type}: {url}")
+        page_data = get_data(url)
+        if 'results' in page_data:
+            all_content.extend(page_data['results'])
+
+        url = page_data.get('next', None)
+
+    print(f"Number of {content_type} published in last 12 hours: {len(all_content)}")
+    return all_content
 
 
 def lambda_handler(event, context):
-    # Due to time shift and ongoing process, we want to have all the changes from 2 days ago
-    get_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
-    near_earth_objects = []
-
-    # Get total number of page
-    total_page = get_neo_data()['page']['total_pages']
-
-    # Get all asteroids which got updated
-    for i in range(total_page):
-        print(f"page: {i}")
-        neos = get_neo_data(i)['near_earth_objects']
-        near_earth_objects.extend(last_updated_neos(neos, get_date))
-
-    print(f"Count number of changes: {len(near_earth_objects)}")
+    all_content = {
+        "articles": process_content("articles"),
+        "blogs": process_content("blogs"),
+        "reports": process_content("reports")
+    }
 
     # Convert list to json
-    data_string = json.dumps(near_earth_objects, indent=2)
+    data_string = json.dumps(all_content, indent=2)
 
     # Create a filename with current date
-    date_str = current_datetime.strftime("%Y-%m-%dT%H-%M-%SZ")
-    filename = f"nasa-data-{date_str}.json"
+    date_str = current_datetime.strftime("%Y-%m-%dT%H")
+    filename = f"space-news-data-{date_str}.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')
