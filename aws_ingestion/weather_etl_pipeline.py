@@ -26,7 +26,7 @@ def get_data(url, sleep_duration=5):
             print(f"Too Many Requests. Waiting for {sleep_duration} seconds...")
             time.sleep(sleep_duration)
         else:
-            print("Unexpected HTTP error. Retrying in 5 seconds...")
+            print(f"Unexpected HTTP error. Retrying in {sleep_duration} seconds...")
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
@@ -34,19 +34,13 @@ def get_data(url, sleep_duration=5):
 
 
 def process_content(specific_url):
-    all_content = []
     url = f"https://services.swpc.noaa.gov/{specific_url}"
 
-    while url:
-        print(f"Processing {specific_url}: {url}")
-        page_data = get_data(url)
-        if 'results' in page_data:
-            all_content.extend(page_data['results'])
+    print(f"Processing {url}")
+    page_data = get_data(url)
 
-        url = page_data.get('next', None)
-
-    print(f"Number of {specific_url} published in last 12 hours: {len(all_content)}")
-    return all_content
+    print(f"Number of {specific_url} published in last 24 hours: {len(page_data)}")
+    return page_data
 
 
 def lambda_handler(event, context):
