@@ -1,87 +1,31 @@
-import requests
-from datetime import datetime
 import pandas as pd
-import toml
+import requests
+import time
+
 
 class SpaceWeatherData:
-    timeout = 10
-
     def __init__(self):
         pass
 
-    def get_data_space_wind_mag(self):
-        """Get primary data from the specified URL."""
-        data = toml.load('config.toml')
-        paths = data.get('PATHS', {})
-        url = paths.get('solar_wind_mag', '')
+    def fetch_data(self, specific_url, sleep_duration=5):
+        url = f"https://services.swpc.noaa.gov/{specific_url}"
         try:
-            response = requests.get(url, timeout=self.timeout)
-            if response.status_code == 200:
+            with requests.Session() as session:
+                # Make the request
+                response = session.get(url)
+                response.raise_for_status()
+
+                # Return the JSON data if successful
                 return response.json()
-            else:
-                print(f"Failed to retrieve data. Status code: {response.status_code}")
-                return {}
-        except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
-            return {}
+        except requests.exceptions.HTTPError as e:
+            print(f"For {url}: {e.response.status_code}")
+            print(f"Error response content: {e.response.text}")
+            time.sleep(sleep_duration)
+            print("Retrying...")
+            return self.fetch_data(specific_url, sleep_duration * 2)
 
-    def get_data_space_wind_plasma(self):
-        """Get primary data from the specified URL."""
-        data = toml.load('config.toml')
-        paths = data.get('PATHS', {})
-        url = paths.get('solar_wind_plasma', '')
-        try:
-            response = requests.get(url, timeout=self.timeout)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"Failed to retrieve data. Status code: {response.status_code}")
-                return {}
-        except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
-            return {}
-
-    def get_data_magnetometers(self):
-        """Get primary data from the specified URL."""
-        data = toml.load('config.toml')
-        paths = data.get('PATHS', {})
-        url = paths.get('magnetometers', '')
-        try:
-            response = requests.get(url, timeout=self.timeout)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"Failed to retrieve data. Status code: {response.status_code}")
-                return {}
-        except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
-            return {}
-
-    def get_data_protons(self):
-        """Get primary data from the specified URL."""
-        data = toml.load('config.toml')
-        paths = data.get('PATHS', {})
-        url = paths.get('protons', '')
-        try:
-            response = requests.get(url, timeout=self.timeout)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"Failed to retrieve data. Status code: {response.status_code}")
-                return {}
-        except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
-            return {}
-
-    def extract_energy_number(self, energy):
-        """Extract numeric value from 'energy' field."""
-        energy = energy.replace('>=', '').split(' ')[0]
-        try:
-            return float(energy)
-        except ValueError:
-            return None
-
-    def convert_to_dataframe(self, data):
+    @staticmethod
+    def convert_to_dataframe(data):
         """Convert JSON data to a Pandas DataFrame with appropriate types."""
         if not data:
             return pd.DataFrame()
@@ -90,39 +34,39 @@ class SpaceWeatherData:
         df = pd.DataFrame(data[1:], columns=data[0])
         df['time_tag'] = pd.to_datetime(df['time_tag'])
 
-        non_time_tag_columns = df.columns[(df.columns != 'time_tag') & (df.columns != 'energy')]  # Exclude 'time_tag' and 'energy'
+        # Exclude 'time_tag' and 'energy'
+        non_time_tag_columns = df.columns[(df.columns != 'time_tag') & (df.columns != 'energy')]
 
         df[non_time_tag_columns] = df[non_time_tag_columns].apply(pd.to_numeric, errors='coerce')
         df[non_time_tag_columns] = df[non_time_tag_columns].round(2)
 
         if 'energy' in df.columns:
-            def extract_energy_number(energy):
-                parts = energy.split(' ')
-                for part in parts:
-                    if part.replace('.', '', 1).isdigit():  # Check if part is a number
-                        return float(part)
-                return None
+            df['energy'] = df['energy'].str.extract(r'(\d+)').astype(float)
 
-            df['energy'] = df['energy'].apply(self.extract_energy_number)
         return df
 
+    def get_data(self):
+        # Same structure like in Data Lake
+        all_content = {
+            "mag": self.fetch_data("products/solar-wind/mag-1-day.json"),
+            "plasma": self.fetch_data("products/solar-wind/plasma-1-day.json"),
+            "magnetometers": self.fetch_data("json/goes/primary/magnetometers-1-day.json"),
+            "protons": self.fetch_data("json/goes/primary/integral-protons-1-day.json")
+        }
+
+        mag = self.convert_to_dataframe(all_content["mag"])
+        plasma = self.convert_to_dataframe(all_content["plasma"])
+        magnetometers = self.convert_to_dataframe(all_content["magnetometers"])
+        protons = self.convert_to_dataframe(all_content["protons"])
+
+        return mag, plasma, magnetometers, protons
+
+
 if __name__ == "__main__":
-
     space_weather = SpaceWeatherData()
+    df_mag, df_plasma, df_magnetometers, df_protons = space_weather.get_data()
 
-    solar_wind_mag    = space_weather.get_data_space_wind_mag()
-    df_solar_wind_mag = space_weather.convert_to_dataframe(solar_wind_mag)
-
-    solar_wind_plasma    = space_weather.get_data_space_wind_plasma()
-    df_solar_wind_plasma = space_weather.convert_to_dataframe(solar_wind_plasma)
-
-    magnetometers    = space_weather.get_data_magnetometers()
-    df_magnetometers = space_weather.convert_to_dataframe(magnetometers)
-
-    protons    = space_weather.get_data_protons()
-    df_protons = space_weather.convert_to_dataframe(protons)
-
-    if not df_solar_wind_mag.empty:
-        print(df_solar_wind_mag)
+    if not df_mag.empty:
+        print(df_mag)
     else:
         print("Failed to retrieve or process primary data.")

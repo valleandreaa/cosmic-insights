@@ -7,14 +7,11 @@ from datetime import datetime, timedelta
 # NASA API Key
 API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
 
-# S3-Buckets Name
-BUCKET_NAME = "swagger23"
-
 # Get the current date and time
 current_datetime = datetime.utcnow()
 
 
-def get_neo_data(page=0, sleep_duration=5):
+def get_data(page=0, sleep_duration=5):
     if page % 1000 == 0 and page > 0:
         print(f"Wait {61 * 60} seconds (=1h 1min) until limit resets")
         time.sleep(61 * 60)  # more than 1h
@@ -37,30 +34,24 @@ def get_neo_data(page=0, sleep_duration=5):
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
-        return get_neo_data(page, sleep_duration * 2)
+        return get_data(page, sleep_duration * 2)
 
 
-def last_updated_neos(neos, today):
-    return [
-        neo for neo in neos if 'orbital_data' in neo and
-                               'last_observation_date' in neo['orbital_data'] and
-                               neo['orbital_data']['last_observation_date'] == today
-    ]
+def last_updated_neos(neos):
+    return [neo for neo in neos if 'orbital_data' in neo]
 
 
 def lambda_handler(event, context):
-    # Due to time shift and ongoing process, we want to have all the changes from 2 days ago
-    get_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
     near_earth_objects = []
 
     # Get total number of page
-    total_page = get_neo_data()['page']['total_pages']
+    total_page = get_data()['page']['total_pages']
 
     # Get all asteroids which got updated
     for i in range(total_page):
         print(f"page: {i}")
-        neos = get_neo_data(i)['near_earth_objects']
-        near_earth_objects.extend(last_updated_neos(neos, get_date))
+        neos = get_data(i)['near_earth_objects']
+        near_earth_objects.extend(last_updated_neos(neos))
 
     print(f"Count number of changes: {len(near_earth_objects)}")
 
@@ -68,26 +59,14 @@ def lambda_handler(event, context):
     data_string = json.dumps(near_earth_objects, indent=2)
 
     # Create a filename with current date
-    date_str = current_datetime.strftime("%Y-%m-%dT%H-%M-%SZ")
-    filename = f"nasa-data-{date_str}.json"
+    date_str = current_datetime.strftime("%Y-%m-%d")
+    filename = f"neo-data-all-{date_str}.json"
 
-    # Initialising S3 Client
-    s3_client = boto3.client('s3')
+    # Save JSON data to a file
+    with open(filename, "w") as json_file:
+        json_file.write(data_string)
 
-    # Try to upload data into S3-Bucket
-    try:
-        s3_client.put_object(Bucket=BUCKET_NAME, Key=filename, Body=data_string)
-        print(f"Successfully uploaded {filename} to {BUCKET_NAME}")
-        return {
-            'statusCode': 200,
-            'body': json.dumps(f"Successfully uploaded {filename} to {BUCKET_NAME}")
-        }
-    except Exception as e:
-        print(f"Error uploading the file: {e}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps("Error uploading the file")
-        }
+    print(f"JSON data saved to {filename}")
 
 
 # Test the function
