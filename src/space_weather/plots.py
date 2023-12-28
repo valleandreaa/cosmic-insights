@@ -1,58 +1,40 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def plot_solar_wind_magnetic_field(df_solar_wind_mag):
-    if not df_solar_wind_mag.empty:
-        df_solar_wind_mag['time_tag'] = pd.to_datetime(df_solar_wind_mag['time_tag'])
+
+def plot_data(df, y_columns, y_labels, title, ylabel, xlabel='Time'):
+    if not df.empty:
+        df['time_tag'] = pd.to_datetime(df['time_tag'])
 
         plt.figure(figsize=(10, 6))
-        plt.plot(df_solar_wind_mag['time_tag'], df_solar_wind_mag['bx_gsm'], label='Bx GSM')
-        plt.plot(df_solar_wind_mag['time_tag'], df_solar_wind_mag['by_gsm'], label='By GSM')
-        plt.plot(df_solar_wind_mag['time_tag'], df_solar_wind_mag['bz_gsm'], label='Bz GSM')
+        for y_column, y_label in zip(y_columns, y_labels):
+            plt.plot(df['time_tag'], df[y_column], label=y_label)
 
-        plt.xlabel('Time')
-        plt.ylabel('Magnetic Field (nT)')
-        plt.title('Solar Wind Magnetic Field Components')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
         plt.legend()
         plt.show()
     else:
         print("No data available for plotting")
+
+
+def plot_solar_wind_magnetic_field(df_solar_wind_mag):
+    y_columns = ['bx_gsm', 'by_gsm', 'bz_gsm']
+    y_labels = ['Bx GSM', 'By GSM', 'Bz GSM']
+    plot_data(df_solar_wind_mag, y_columns, y_labels, 'Solar Wind Magnetic Field Components', 'Magnetic Field (nT)')
 
 
 def plot_solar_wind_plasma(df_solar_wind_plasma):
-    if not df_solar_wind_plasma.empty:
-        df_solar_wind_plasma['time_tag'] = pd.to_datetime(df_solar_wind_plasma['time_tag'])
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(df_solar_wind_plasma['time_tag'], df_solar_wind_plasma['density'], label='Density')
-        plt.plot(df_solar_wind_plasma['time_tag'], df_solar_wind_plasma['speed'], label='Speed')
-
-        plt.xlabel('Time')
-        plt.ylabel('Values')
-        plt.title('Solar Wind Plasma Data')
-        plt.legend()
-        plt.show()
-    else:
-        print("No data available for plotting")
+    y_columns = ['density', 'speed']
+    y_labels = ['Density', 'Speed']
+    plot_data(df_solar_wind_plasma, y_columns, y_labels, 'Solar Wind Plasma Data', 'Values')
 
 
 def plot_magnetometer_data(df_magnetometers):
-    if not df_magnetometers.empty:
-        df_magnetometers['time_tag'] = pd.to_datetime(df_magnetometers['time_tag'])
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(df_magnetometers['time_tag'], df_magnetometers['He'], label='He')
-        plt.plot(df_magnetometers['time_tag'], df_magnetometers['Hp'], label='Hp')
-        plt.plot(df_magnetometers['time_tag'], df_magnetometers['Hn'], label='Hn')
-        plt.plot(df_magnetometers['time_tag'], df_magnetometers['total'], label='Total')
-
-        plt.xlabel('Time')
-        plt.ylabel('Magnetic Field (nT)')
-        plt.title('Magnetometer Data')
-        plt.legend()
-        plt.show()
-    else:
-        print("No data available for plotting")
+    y_columns = ['He', 'Hp', 'Hn', 'total']
+    y_labels = ['He', 'Hp', 'Hn', 'Total']
+    plot_data(df_magnetometers, y_columns, y_labels, 'Magnetometer Data', 'Magnetic Field (nT)')
 
 
 def plot_protons_data(df_protons):
@@ -75,5 +57,3 @@ def plot_protons_data(df_protons):
         plt.show()
     else:
         print("No data available for plotting")
-
-
