@@ -1,5 +1,5 @@
 -- Create the 'time' dimension table
-CREATE TABLE time (
+CREATE TABLE dim_time (
     time_id SERIAL PRIMARY KEY,
     year INT,
     quarter INT,
@@ -7,35 +7,38 @@ CREATE TABLE time (
     week INT,
     day INT,
     hour INT,
-    minute INT
+    minute INT,
+    CONSTRAINT uq_dim_time_unique_values UNIQUE (year, quarter, month, week, day, hour, minute)
 );
 
 -- Create the 'magnitude' table
-CREATE TABLE magnitude (
+CREATE TABLE dim_magnitude (
     magnitude_id SERIAL PRIMARY KEY,
-    magnitude DECIMAL
+    magnitude DECIMAL,
+    CONSTRAINT uq_dim_magnitude_unique_values UNIQUE (magnitude)
 );
 
 -- Create the 'type' table
-CREATE TABLE type (
+CREATE TABLE dim_type (
     type_id SERIAL PRIMARY KEY,
     description TEXT,
-    class_range TEXT
+    class_range TEXT,
+    CONSTRAINT uq_dim_type_unique_values UNIQUE (class_range)
 );
 
 -- Create the 'diameter' table
-CREATE TABLE diameter (
+CREATE TABLE dim_diameter (
     diameter_id SERIAL PRIMARY KEY,
     kilometer DECIMAL,
     meter DECIMAL,
     miles DECIMAL,
-    feet DECIMAL
+    feet DECIMAL,
+    CONSTRAINT uq_dim_diameter_unique_values UNIQUE (kilometer, meter, miles, feet)
 );
 
 -- Create the 'asteroid' table
-CREATE TABLE asteroid (
+CREATE TABLE dim_asteroid_detail (
     asteroid_id SERIAL PRIMARY KEY,
-    name TEXT,
     is_potentially_hazardous BOOLEAN,
     is_sentry_object BOOLEAN,
     arc_in_days INT,
@@ -55,19 +58,21 @@ CREATE TABLE asteroid (
     mean_anomaly DECIMAL,
     mean_motion DECIMAL,
     equinox TEXT,
-    orbit_determination_date TIMESTAMP
+    orbit_determination_date TIMESTAMP,
+    CONSTRAINT uq_dim_asteroid_unique_values UNIQUE (is_potentially_hazardous, is_sentry_object, arc_in_days, observations_used, orbit_uncertainty, minimum_orbit_intersection, epoch_osculation, eccentricity, semi_major_axis, inclination, ascending_node_longitude, orbital_period, perihelion_distance, perihelion_argument, aphelion_distance, perihelion_time, mean_anomaly, mean_motion, equinox, orbit_determination_date)
 );
 
 -- Create the 'fact_sheet' table which references other tables
-CREATE TABLE fact_sheet (
+CREATE TABLE fact_asteroid (
     fact_sheet_id SERIAL PRIMARY KEY,
-    time_id INT REFERENCES time (time_id),
-    diameter_id INT REFERENCES diameter (diameter_id),
-    magnitude_id INT REFERENCES magnitude (magnitude_id),
-    asteroid_id INT REFERENCES asteroid (asteroid_id),
-    type_id INT REFERENCES type (type_id),
-    name TEXT
+    time_id INT REFERENCES dim_time (time_id),
+    diameter_id INT REFERENCES dim_diameter (diameter_id),
+    magnitude_id INT REFERENCES dim_magnitude (magnitude_id),
+    asteroid_id INT REFERENCES dim_asteroid (asteroid_id),
+    type_id INT REFERENCES dim_type (type_id),
+    asteroid_name TEXT,
+    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (time_id, diameter_id, magnitude_id, asteroid_id, type_id, asteroid_name)
 );
 
+-- Optional: Query to check the created tables in the current database schema
 SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
-

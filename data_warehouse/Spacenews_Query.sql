@@ -1,5 +1,5 @@
 -- Create the 'time' dimension table
-CREATE TABLE time (
+CREATE TABLE dim_time (
     time_id SERIAL PRIMARY KEY,
     year INT,
     quarter INT,
@@ -7,29 +7,33 @@ CREATE TABLE time (
     week INT,
     day INT,
     hour INT,
-    minute INT
+    minute INT,
+    CONSTRAINT uq_dim_time_unique_values UNIQUE (year, quarter, month, week, day, hour, minute)
 );
 
 -- Create the 'type' table
-CREATE TABLE type (
+CREATE TABLE dim_type (
     type_id SERIAL PRIMARY KEY,
-    name TEXT
+    name TEXT,
+    CONSTRAINT uq_dim_type_unique_values UNIQUE (name)
 );
 
 -- Create the 'sentiment' table
-CREATE TABLE sentiment (
+CREATE TABLE dim_sentiment (
     sentiment_id SERIAL PRIMARY KEY,
-    score DECIMAL
+    score DECIMAL,
+    CONSTRAINT uq_dim_sentiment_unique_values UNIQUE (score)
 );
 
 -- Create the 'source' table
-CREATE TABLE source (
+CREATE TABLE dim_source (
     source_id SERIAL PRIMARY KEY,
-    name TEXT
+    name TEXT,
+    CONSTRAINT uq_dim_source_unique_values UNIQUE (name)
 );
 
 -- Create the 'news' table
-CREATE TABLE news (
+CREATE TABLE dim_news_detail (
     news_id SERIAL PRIMARY KEY,
     title TEXT,
     summary TEXT,
@@ -37,17 +41,17 @@ CREATE TABLE news (
     img_url TEXT
 );
 
--- Create the 'fact_sheet' table which references other tables
-CREATE TABLE fact_sheet (
+-- Create the 'fact_news' table which references other tables
+CREATE TABLE fact_news (
     fact_sheet_id SERIAL PRIMARY KEY,
-    news_id INT REFERENCES news (news_id),
-    time_id INT REFERENCES time (time_id),
-    source_id INT REFERENCES source (source_id),
-    type_id INT REFERENCES type (type_id),
-    sentiment_id INT REFERENCES sentiment (sentiment_id)
+    news_id INT REFERENCES dim_news (news_id),
+    time_id INT REFERENCES dim_time (time_id),
+    source_id INT REFERENCES dim_source (source_id),
+    type_id INT REFERENCES dim_type (type_id),
+    sentiment_id INT REFERENCES dim_sentiment (sentiment_id),
+    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (news_id, time_id, source_id, type_id, sentiment_id)
 );
 
 -- Optional: Query to check the created tables in the current database schema
 SELECT * FROM pg_catalog.pg_tables
 WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
-
