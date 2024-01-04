@@ -15,14 +15,14 @@ def get_data():
 
     selected_data = []
     for category, items in base_data.items():
-        for item in items:
+        for element in items:
             attributes = {
-                "title": item.get("title"),
-                "url": item.get("url"),
-                "image_url": item.get("image_url"),
-                "news_site": item.get("news_site"),
-                "summary": item.get("summary"),
-                "published_at": item.get("published_at"),
+                "title": element.get("title"),
+                "url": element.get("url"),
+                "image_url": element.get("image_url"),
+                "news_site": element.get("news_site"),
+                "summary": element.get("summary"),
+                "published_at": element.get("published_at"),
                 "category": category,
             }
             selected_data.append(attributes)
@@ -50,7 +50,6 @@ def show_sentiment_trend(dataset):
 
 if __name__ == "__main__":
     start_time = time.time()
-
     data = get_data()
 
     # Apply sentiment analysis and store results
@@ -58,7 +57,6 @@ if __name__ == "__main__":
         item["sentiment"] = get_sentiment(item['summary'])
 
     show_sentiment_trend(data)
-
     end_time = time.time()
     execution_time_ms = (end_time - start_time) * 1000
     print(f"Execution time: {execution_time_ms} ms")

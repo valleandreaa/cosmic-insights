@@ -36,10 +36,10 @@ if __name__ == "__main__":
     url = "https://api.nasa.gov/neo/rest/v1/neo/browse?page=1&size=1&api_key=U1rN3FyZdsp9dpqaKIFRRAl92EtaBV9AUGdb8lei"
     r = requests.get(url)
     data = r.json()
-    neo_data = data['near_earth_objects'][0]
+    near_earth_objects = data['near_earth_objects'][0]
 
     # Calculate current orbit
-    current_orbit = calculate_current_orbit(neo_data)
+    current_orbit = calculate_current_orbit(near_earth_objects)
     x, y, z = current_orbit.r
 
     print(f"Position of the asteroid at the current time: ({x.to(u.km):.2f}, {y.to(u.km):.2f}, {z.to(u.km):.2f}) km")
