@@ -1,8 +1,8 @@
+from datetime import datetime
 import boto3
 import json
 import requests
 import time
-from datetime import datetime
 
 # S3-Buckets Name
 BUCKET_NAME = "swagger23"
@@ -26,42 +26,37 @@ def get_data(url, sleep_duration=5):
             print(f"Too Many Requests. Waiting for {sleep_duration} seconds...")
             time.sleep(sleep_duration)
         else:
-            print("Unexpected HTTP error. Retrying in 5 seconds...")
+            print(f"Unexpected HTTP error. Retrying in {sleep_duration} seconds...")
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
         return get_data(url, sleep_duration * 2)
 
 
-def process_content(content_type):
-    all_content = []
-    url = f"https://api.spaceflightnewsapi.net/v4/{content_type}?limit=500"
+def process_content(specific_url):
+    url = f"https://services.swpc.noaa.gov/{specific_url}"
 
-    while url:
-        print(f"Processing {content_type}: {url}")
-        page_data = get_data(url)
-        if 'results' in page_data:
-            all_content.extend(page_data['results'])
+    print(f"Processing {url}")
+    page_data = get_data(url)
 
-        url = page_data.get('next', None)
-
-    print(f"Total number of {content_type} collected: {len(all_content)}")
-    return all_content
+    print(f"Number of {specific_url} published in last 24 hours: {len(page_data)}")
+    return page_data
 
 
 def lambda_handler(event, context):
     all_content = {
-        "articles": process_content("articles"),
-        "blogs": process_content("blogs"),
-        "reports": process_content("reports")
+        "mag": process_content("products/solar-wind/mag-1-day.json"),
+        "plasma": process_content("products/solar-wind/plasma-1-day.json"),
+        "magnetometers": process_content("json/goes/primary/magnetometers-1-day.json"),
+        "protons": process_content("json/goes/primary/integral-protons-1-day.json")
     }
 
     # Convert list to json
     data_string = json.dumps(all_content, indent=2)
 
     # Create a filename with current date
-    date_str = current_datetime.strftime("%Y-%m-%dT%H")
-    filename = f"space-news-data-all-{date_str}.json"
+    date_str = current_datetime.strftime("%Y-%m-%d")
+    filename = f"weather-data-{date_str}.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')

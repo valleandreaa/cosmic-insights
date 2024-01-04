@@ -1,8 +1,8 @@
+from datetime import datetime, timedelta
 import boto3
 import json
 import requests
 import time
-from datetime import datetime, timedelta
 
 # NASA API Key
 API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
@@ -14,10 +14,7 @@ BUCKET_NAME = "swagger23"
 current_datetime = datetime.utcnow()
 
 
-def get_neo_data(page=0, sleep_duration=5):
-    if page % 1000 == 0 and page > 0:
-        print(f"Wait {61 * 60} seconds (=1h 1min) until limit resets")
-        time.sleep(61 * 60)  # more than 1h
+def get_data(page=0, sleep_duration=5):
     try:
         with requests.Session() as session:
             # Make the request
@@ -37,7 +34,7 @@ def get_neo_data(page=0, sleep_duration=5):
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
-        return get_neo_data(page, sleep_duration * 2)
+        return get_data(page, sleep_duration * 2)
 
 
 def last_updated_neos(neos, today):
@@ -50,17 +47,14 @@ def last_updated_neos(neos, today):
 
 def lambda_handler(event, context):
     # Due to time shift and ongoing process, we want to have all the changes from 2 days ago
-    get_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
+    fetch_data = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
     near_earth_objects = []
-
-    # Get total number of page
-    total_page = get_neo_data()['page']['total_pages']
-
+    
     # Get all asteroids which got updated
-    for i in range(total_page):
+    for i in range(0, 1000):
         print(f"page: {i}")
-        neos = get_neo_data(i)['near_earth_objects']
-        near_earth_objects.extend(last_updated_neos(neos, get_date))
+        neos = get_data(i)['near_earth_objects']
+        near_earth_objects.extend(last_updated_neos(neos, fetch_data))
 
     print(f"Count number of changes: {len(near_earth_objects)}")
 
@@ -68,8 +62,8 @@ def lambda_handler(event, context):
     data_string = json.dumps(near_earth_objects, indent=2)
 
     # Create a filename with current date
-    date_str = current_datetime.strftime("%Y-%m-%dT%H-%M-%SZ")
-    filename = f"nasa-data-{date_str}.json"
+    date_str = current_datetime.strftime("%Y-%m-%d")
+    filename = f"neo-data-{date_str}-1.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')

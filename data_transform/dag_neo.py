@@ -1,12 +1,12 @@
 from airflow import DAG
+from airflow.hooks.base_hook import BaseHook
+from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.transfers.s3_to_sql import S3ToSqlOperator
-from airflow.operators.python_operator import PythonOperator
-import psycopg2
-from airflow.hooks.base_hook import BaseHook
 from datetime import datetime, timedelta
-import logging
 import json
+import logging
+import psycopg2
 
 
 def read_json_from_s3(*args, **kwargs):

@@ -1,6 +1,6 @@
+from astropy.time import Time
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
-from astropy.time import Time
 import astropy.units as u
 import requests
 

@@ -59,5 +59,4 @@ CREATE TABLE fact_sheet (
 );
 
 -- Optional: Query to check the created tables in the current database schema
-SELECT * FROM pg_catalog.pg_tables
-WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';
+SELECT * FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema';

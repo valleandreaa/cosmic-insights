@@ -1,6 +1,6 @@
-import plots
-import FTP_connector
 import forecasting
+import FTP_connector
+import plots
 
 space_weather = FTP_connector.SpaceWeatherData()
 df_solar_wind_mag, df_solar_wind_plasma, df_magnetometers, df_protons = space_weather.get_data()

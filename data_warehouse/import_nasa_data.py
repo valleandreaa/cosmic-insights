@@ -1,8 +1,8 @@
-import json
-import psycopg2
 from datetime import datetime
 from decimal import Decimal
 from psycopg2 import sql
+import json
+import psycopg2
 
 # Database connection parameters
 db_params = {

@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta
 import boto3
 import json
 import requests
 import time
-from datetime import datetime, timedelta
+
+# NASA API Key
+API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
 
 # S3-Buckets Name
 BUCKET_NAME = "swagger23"
@@ -11,10 +14,11 @@ BUCKET_NAME = "swagger23"
 current_datetime = datetime.utcnow()
 
 
-def get_data(url, sleep_duration=5):
+def get_data(page=0, sleep_duration=5):
     try:
         with requests.Session() as session:
             # Make the request
+            url = f"https://api.nasa.gov/neo/rest/v1/neo/browse?api_key={API_KEY}&page={page}"
             response = session.get(url)
             response.raise_for_status()
 
@@ -26,37 +30,40 @@ def get_data(url, sleep_duration=5):
             print(f"Too Many Requests. Waiting for {sleep_duration} seconds...")
             time.sleep(sleep_duration)
         else:
-            print(f"Unexpected HTTP error. Retrying in {sleep_duration} seconds...")
+            print("Unexpected HTTP error. Retrying in 5 seconds...")
             time.sleep(sleep_duration)
         print(f"Error response content: {e.response.text}")
         print("Retrying...")
-        return get_data(url, sleep_duration * 2)
+        return get_data(page, sleep_duration * 2)
 
 
-def process_content(specific_url):
-    url = f"https://services.swpc.noaa.gov/{specific_url}"
-
-    print(f"Processing {url}")
-    page_data = get_data(url)
-
-    print(f"Number of {specific_url} published in last 24 hours: {len(page_data)}")
-    return page_data
+def last_updated_neos(neos, today):
+    return [
+        neo for neo in neos if 'orbital_data' in neo and
+                               'last_observation_date' in neo['orbital_data'] and
+                               neo['orbital_data']['last_observation_date'] == today
+    ]
 
 
 def lambda_handler(event, context):
-    all_content = {
-        "mag": process_content("products/solar-wind/mag-1-day.json"),
-        "plasma": process_content("products/solar-wind/plasma-1-day.json"),
-        "magnetometers": process_content("json/goes/primary/magnetometers-1-day.json"),
-        "protons": process_content("json/goes/primary/integral-protons-1-day.json")
-    }
+    # Due to time shift and ongoing process, we want to have all the changes from 2 days ago
+    fetch_data = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
+    near_earth_objects = []
+
+    # Get all asteroids which got updated
+    for i in range(1000, 2000):
+        print(f"page: {i}")
+        neos = get_data(i)['near_earth_objects']
+        near_earth_objects.extend(last_updated_neos(neos, fetch_data))
+
+    print(f"Count number of changes: {len(near_earth_objects)}")
 
     # Convert list to json
-    data_string = json.dumps(all_content, indent=2)
+    data_string = json.dumps(near_earth_objects, indent=2)
 
     # Create a filename with current date
     date_str = current_datetime.strftime("%Y-%m-%d")
-    filename = f"weather-data-{date_str}.json"
+    filename = f"neo-data-{date_str}-2.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')

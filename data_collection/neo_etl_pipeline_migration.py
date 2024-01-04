@@ -1,8 +1,7 @@
-import boto3
+from datetime import datetime
 import json
 import requests
 import time
-from datetime import datetime, timedelta
 
 # NASA API Key
 API_KEY = "FVu0meyjKirmxLfW9mP23uPSfNfFQ01YHNPqRRng"
