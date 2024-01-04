@@ -21,6 +21,7 @@ CREATE TABLE dim_magnitude (
 -- Create the 'type' table
 CREATE TABLE dim_type (
     type_id SERIAL PRIMARY KEY,
+    type_name TEXT,
     description TEXT,
     class_range TEXT,
     CONSTRAINT uq_dim_type_unique_values UNIQUE (class_range)
@@ -42,8 +43,6 @@ CREATE TABLE dim_asteroid_detail (
     is_potentially_hazardous BOOLEAN,
     is_sentry_object BOOLEAN,
     arc_in_days INT,
-    observations_used INT,
-    orbit_uncertainty DECIMAL,
     minimum_orbit_intersection DECIMAL,
     epoch_osculation DECIMAL,
     eccentricity DECIMAL,
@@ -53,13 +52,10 @@ CREATE TABLE dim_asteroid_detail (
     orbital_period DECIMAL,
     perihelion_distance DECIMAL,
     perihelion_argument DECIMAL,
-    aphelion_distance DECIMAL,
-    perihelion_time DECIMAL,
     mean_anomaly DECIMAL,
     mean_motion DECIMAL,
-    equinox TEXT,
     orbit_determination_date TIMESTAMP,
-    CONSTRAINT uq_dim_asteroid_unique_values UNIQUE (is_potentially_hazardous, is_sentry_object, arc_in_days, observations_used, orbit_uncertainty, minimum_orbit_intersection, epoch_osculation, eccentricity, semi_major_axis, inclination, ascending_node_longitude, orbital_period, perihelion_distance, perihelion_argument, aphelion_distance, perihelion_time, mean_anomaly, mean_motion, equinox, orbit_determination_date)
+    CONSTRAINT uq_dim_asteroid_unique_values UNIQUE (is_potentially_hazardous, is_sentry_object, arc_in_days, minimum_orbit_intersection, epoch_osculation, eccentricity, semi_major_axis, inclination, ascending_node_longitude, orbital_period, perihelion_distance, perihelion_argument, mean_anomaly, mean_motion, orbit_determination_date)
 );
 
 -- Create the 'fact_sheet' table which references other tables
@@ -68,7 +64,7 @@ CREATE TABLE fact_asteroid (
     time_id INT REFERENCES dim_time (time_id),
     diameter_id INT REFERENCES dim_diameter (diameter_id),
     magnitude_id INT REFERENCES dim_magnitude (magnitude_id),
-    asteroid_id INT REFERENCES dim_asteroid (asteroid_id),
+    asteroid_id INT REFERENCES dim_asteroid_detail (asteroid_id),
     type_id INT REFERENCES dim_type (type_id),
     asteroid_name TEXT,
     CONSTRAINT uq_fact_sheet_unique_values UNIQUE (time_id, diameter_id, magnitude_id, asteroid_id, type_id, asteroid_name)
