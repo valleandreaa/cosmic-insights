@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import json
 
+
 def read_json_from_s3(*args, **kwargs):
     ti = kwargs['ti']
     bucket_name = kwargs['bucket_name']
@@ -23,26 +24,26 @@ def read_json_from_s3(*args, **kwargs):
 
     logging.info(f"Read content from {key} in S3 bucket {bucket_name}")
 
-#def custom_s3_to_sql_transfer_asteroids(json_data):
-    #ti = kwargs['ti']
-    #json_data = ti.xcom_pull(key='json_data', task_ids='read_json_from_s3')
-    
-#    return asteroids_list
+
+def custom_s3_to_sql_transfer_asteroids(json_data):
+    ti = kwargs['ti']
+    json_data = ti.xcom_pull(key='json_data', task_ids='read_json_from_s3')
+    return asteroids_list
 
 
 def insert_into_asteroids(*args, **kwargs):
     ti = kwargs['ti']
     near_earth_objects = ti.xcom_pull(key='json_data', task_ids='read_from_s3')
-    #asteroids_list = custom_s3_to_sql_transfer_asteroids(data)
-   
+    # asteroids_list = custom_s3_to_sql_transfer_asteroids(data)
+
     asteroids_list = []
-    
+
     for asteroid in near_earth_objects:
-    # Extracting data from the 'orbital_data' nested dictionary
+        # Extracting data from the 'orbital_data' nested dictionary
         orbital_data = asteroid.get('orbital_data', {})
 
         asteroids_list.append([
-            #asteroid.get('id'),
+            # asteroid.get('id'),
             asteroid.get('name'),
             asteroid.get('is_potentially_hazardous_asteroid'),
             asteroid.get('is_sentry_object'),
@@ -67,7 +68,6 @@ def insert_into_asteroids(*args, **kwargs):
         ])
     logging.info(f"Asteroids")
 
-
     conn = BaseHook.get_connection('rds_postgres_conn').get_uri()
     with psycopg2.connect(conn) as connection:
         with connection.cursor() as cursor:
@@ -80,27 +80,25 @@ def insert_into_asteroids(*args, **kwargs):
                 perihelion_argument, aphelion_distance, perihelion_time, 
                 mean_anomaly, mean_motion, equinox, orbit_determination_date
             ) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-
             """
-            
-            
+
             cursor.executemany(insert_query, asteroids_list)
             connection.commit()
-
 
 
 def insert_into_diameter(*args, **kwargs):
     ti = kwargs['ti']
     near_earth_objects = ti.xcom_pull(key='json_data', task_ids='read_from_s3')
     diameter_list = []
-    
+
     for asteroid in near_earth_objects:
         diameter_kilometers = asteroid['estimated_diameter']['kilometers']
         diameter_meters = asteroid['estimated_diameter']['meters']
         diameter_miles = asteroid['estimated_diameter']['miles']
         diameter_feet = asteroid['estimated_diameter']['feet']
 
-        avg_diameter_km = (diameter_kilometers['estimated_diameter_max'] + diameter_kilometers['estimated_diameter_min']) / 2
+        avg_diameter_km = (diameter_kilometers['estimated_diameter_max'] + diameter_kilometers[
+            'estimated_diameter_min']) / 2
         avg_diameter_m = (diameter_meters['estimated_diameter_max'] + diameter_meters['estimated_diameter_min']) / 2
         avg_diameter_miles = (diameter_miles['estimated_diameter_max'] + diameter_miles['estimated_diameter_min']) / 2
         avg_diameter_feet = (diameter_feet['estimated_diameter_max'] + diameter_feet['estimated_diameter_min']) / 2
@@ -111,7 +109,7 @@ def insert_into_diameter(*args, **kwargs):
             avg_diameter_miles,
             avg_diameter_feet
         ])
-    
+
     conn = BaseHook.get_connection('rds_postgres_conn').get_uri()
     with psycopg2.connect(conn) as connection:
         with connection.cursor() as cursor:
@@ -121,11 +119,10 @@ def insert_into_diameter(*args, **kwargs):
                          kilometer, meter, miles, feet
                     ) VALUES ( %s, %s, %s, %s)
                     """
-            
-            
+
             # Executing the query for each item in diameter_list
             cursor.executemany(insert_query, diameter_list)
-            
+
             # Committing the transaction
             connection.commit()
 
@@ -134,7 +131,6 @@ def insert_into_type(*args, **kwargs):
     ti = kwargs['ti']
     near_earth_objects = ti.xcom_pull(key='json_data', task_ids='read_from_s3')
     type_list = []
-    
 
     for asteroid in near_earth_objects:
         orbit_class = asteroid['orbital_data']['orbit_class']
@@ -155,12 +151,10 @@ def insert_into_type(*args, **kwargs):
             connection.commit()
 
 
-
 def insert_into_magnitude(*args, **kwargs):
     ti = kwargs['ti']
     near_earth_objects = ti.xcom_pull(key='json_data', task_ids='read_from_s3')
     magnitude_list = []
-    
 
     for asteroid in near_earth_objects:
         magnitude_value = asteroid.get('absolute_magnitude_h')
@@ -177,7 +171,6 @@ def insert_into_magnitude(*args, **kwargs):
             connection.commit()
 
 
-
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -188,14 +181,12 @@ default_args = {
 }
 
 with DAG(
-    dag_id='s3_download_3',
-    default_args=default_args,
-    schedule_interval='@daily',
-    start_date=datetime(2023, 3, 1),
-    catchup=False
+        dag_id='s3_download_3',
+        default_args=default_args,
+        schedule_interval='@daily',
+        start_date=datetime(2023, 3, 1),
+        catchup=False
 ) as dag:
-
-
     read_from_s3 = PythonOperator(
         task_id='read_from_s3',
         python_callable=read_json_from_s3,
@@ -205,34 +196,29 @@ with DAG(
         }
     )
 
-
-
     transfer_s3_to_sql_asteroids = PythonOperator(
         task_id='transfer_s3_to_sql_asteroids',
-        python_callable=insert_into_asteroids, 
+        python_callable=insert_into_asteroids,
         op_kwargs={}
     )
 
     transfer_s3_to_sql_diameter = PythonOperator(
         task_id='transfer_s3_to_sql_diameter',
-        python_callable=insert_into_diameter, 
+        python_callable=insert_into_diameter,
         op_kwargs={}
     )
 
     transfer_s3_to_sql_type = PythonOperator(
         task_id='transfer_s3_to_sql_type',
-        python_callable=insert_into_type, 
+        python_callable=insert_into_type,
         op_kwargs={}
     )
 
     transfer_s3_to_sql_magnitude = PythonOperator(
         task_id='transfer_s3_to_sql_magnitude',
-        python_callable=insert_into_magnitude, 
+        python_callable=insert_into_magnitude,
         op_kwargs={}
     )
 
-
-
-
-
-read_from_s3 >> [transfer_s3_to_sql_asteroids, transfer_s3_to_sql_diameter, transfer_s3_to_sql_type, transfer_s3_to_sql_magnitude ]
+read_from_s3 >> [transfer_s3_to_sql_asteroids, transfer_s3_to_sql_diameter, transfer_s3_to_sql_type,
+                 transfer_s3_to_sql_magnitude]

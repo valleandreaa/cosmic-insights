@@ -110,7 +110,6 @@ if __name__ == "__main__":
     input_size, x_train_data, x_test_data, y_train_data, y_test_data = prepare_data(df_asteroids)
 
     # Initialize the model
-
     model = NeuralNetwork(input_size)
     train_model(model, x_train_data, y_train_data)
 
