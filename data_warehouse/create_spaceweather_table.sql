@@ -47,15 +47,14 @@ CREATE TABLE dim_proton (
 );
 
 -- Create the 'fact_sheet' table which references other tables
-CREATE TABLE fact_sheet (
+CREATE TABLE fact_weather (
     fact_sheet_id SERIAL PRIMARY KEY,
-    weather_id INT,
-    plasma_id INT REFERENCES dim_plasma (plasma_id),
     time_id INT REFERENCES dim_time (time_id),
+    plasma_id INT REFERENCES dim_plasma (plasma_id),
     magnetometer_id INT REFERENCES dim_magnetometer (magnetometer_id),
     mag_id INT REFERENCES dim_mag (mag_id),
     proton_id INT REFERENCES dim_proton (proton_id),
-    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (weather_id, plasma_id, time_id, magnetometer_id, mag_id, proton_id)
+    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (time_id, plasma_id, magnetometer_id, mag_id, proton_id)
 );
 
 -- Optional: Query to check the created tables in the current database schema
