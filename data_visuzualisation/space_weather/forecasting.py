@@ -33,7 +33,7 @@ def create_sequences(data, seq_length):
 
 def forecast_solar_wind(df_solar_wind_mag, sequence_length=10, hidden_size=64, num_layers=2, num_epochs=3,
                         num_steps_ahead=5):
-    df_solar_wind_mag = df_solar_wind_mag[['bx_gsm']]
+    df_solar_wind_mag = df_solar_wind_mag[['bx_gsm']].dropna()
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(df_solar_wind_mag)
 

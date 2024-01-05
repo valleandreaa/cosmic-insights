@@ -1,16 +1,14 @@
+from data_warehouse.import_weather_data import get_data
 import forecasting
-import FTP_connector
 import plots
 
-space_weather = FTP_connector.SpaceWeatherData()
-df_solar_wind_mag, df_solar_wind_plasma, df_magnetometers, df_protons = space_weather.get_data()
+space_weather = get_data()
+plots.plot_solar_wind_magnetic_field(space_weather)
+plots.plot_solar_wind_plasma(space_weather)
+plots.plot_magnetometer_data(space_weather)
+plots.plot_protons_data(space_weather)
 
-plots.plot_solar_wind_magnetic_field(df_solar_wind_mag)
-plots.plot_solar_wind_plasma(df_solar_wind_plasma)
-plots.plot_magnetometer_data(df_magnetometers)
-plots.plot_protons_data(df_protons)
-
-future_predictions = forecasting.forecast_solar_wind(df_solar_wind_mag)
+future_predictions = forecasting.forecast_solar_wind(space_weather)
 
 print("Predicted Values:", future_predictions)
 

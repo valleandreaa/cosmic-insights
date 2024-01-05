@@ -6,7 +6,7 @@ import psycopg2
 
 # Database connection parameters
 db_params = {
-    'dbname': 'databaseneo',
+    'dbname': 'neo_db',
     'user': 'postgres',
     'password': 'andrea',
     'host': 'localhost',  # 192.168.1.26
