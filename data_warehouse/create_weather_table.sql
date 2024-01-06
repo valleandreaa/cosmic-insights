@@ -16,7 +16,8 @@ CREATE TABLE dim_plasma (
     plasma_id SERIAL PRIMARY KEY,
     density DECIMAL,
     speed DECIMAL,
-    CONSTRAINT uq_dim_plasma_unique_values UNIQUE (density, speed)
+    temperature INT,
+    CONSTRAINT uq_dim_plasma_unique_values UNIQUE (density, speed, temperature)
 );
 
 -- Create the 'magnetometer' table
