@@ -38,18 +38,19 @@ CREATE TABLE dim_news_detail (
     title TEXT,
     summary TEXT,
     url TEXT,
-    img_url TEXT
+    img_url TEXT,
+    CONSTRAINT uq_dim_news_detail_unique_values UNIQUE (title, summary)
 );
 
 -- Create the 'fact_news' table which references other tables
 CREATE TABLE fact_news (
     fact_sheet_id SERIAL PRIMARY KEY,
-    news_id INT REFERENCES dim_news (news_id),
+    news_id INT REFERENCES dim_news_detail (news_id),
     time_id INT REFERENCES dim_time (time_id),
     source_id INT REFERENCES dim_source (source_id),
     type_id INT REFERENCES dim_type (type_id),
     sentiment_id INT REFERENCES dim_sentiment (sentiment_id),
-    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (news_id, time_id, source_id, type_id, sentiment_id)
+    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (news_id, time_id, source_id, type_id)
 );
 
 -- Optional: Query to check the created tables in the current database schema
