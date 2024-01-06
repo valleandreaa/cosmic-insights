@@ -30,10 +30,10 @@ insert_time_query = sql.SQL("""
 """)
 
 insert_type_query = sql.SQL("""
-    INSERT INTO dim_type (name)
+    INSERT INTO dim_type (type_name)
     VALUES (%s)
     ON CONFLICT ON CONSTRAINT uq_dim_type_unique_values
-    DO UPDATE SET name = EXCLUDED.name
+    DO UPDATE SET type_name = EXCLUDED.type_name
     RETURNING type_id;
 """)
 
@@ -46,10 +46,10 @@ insert_sentiment_query = sql.SQL("""
 """)
 
 insert_source_query = sql.SQL("""
-    INSERT INTO dim_source (name)
+    INSERT INTO dim_source (source_name)
     VALUES (%s)
     ON CONFLICT ON CONSTRAINT uq_dim_source_unique_values
-    DO UPDATE SET name = EXCLUDED.name
+    DO UPDATE SET source_name = EXCLUDED.source_name
     RETURNING source_id;
 """)
 

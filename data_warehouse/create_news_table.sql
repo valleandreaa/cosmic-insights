@@ -14,8 +14,8 @@ CREATE TABLE dim_time (
 -- Create the 'type' table
 CREATE TABLE dim_type (
     type_id SERIAL PRIMARY KEY,
-    name TEXT,
-    CONSTRAINT uq_dim_type_unique_values UNIQUE (name)
+    type_name TEXT,
+    CONSTRAINT uq_dim_type_unique_values UNIQUE (type_name)
 );
 
 -- Create the 'sentiment' table
@@ -28,8 +28,8 @@ CREATE TABLE dim_sentiment (
 -- Create the 'source' table
 CREATE TABLE dim_source (
     source_id SERIAL PRIMARY KEY,
-    name TEXT,
-    CONSTRAINT uq_dim_source_unique_values UNIQUE (name)
+    source_name TEXT,
+    CONSTRAINT uq_dim_source_unique_values UNIQUE (source_name)
 );
 
 -- Create the 'news' table
