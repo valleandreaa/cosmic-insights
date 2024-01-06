@@ -25,7 +25,7 @@ insert_time_query = sql.SQL("""
 """)
 
 insert_plasma_query = sql.SQL("""
-    INSERT INTO dim_plasma (density, speed)
+    INSERT INTO dim_plasma (density, speed, temperature)
     VALUES (%s, %s)
     ON CONFLICT ON CONSTRAINT uq_dim_plasma_unique_values
     DO UPDATE SET density = EXCLUDED.density
@@ -87,7 +87,8 @@ def insert_plasma(data, cursor):
         return None
 
     speed = data["speed"]
-    cursor.execute(insert_plasma_query, (density, speed))
+    temperature = data["temperature"]
+    cursor.execute(insert_plasma_query, (density, speed, temperature))
     plasma_id = cursor.fetchone()[0]
 
     return plasma_id
