@@ -11,11 +11,11 @@ CREATE TABLE dim_time (
     CONSTRAINT uq_dim_time_unique_values UNIQUE (year, quarter, month, week, day, hour, minute)
 );
 
--- Create the 'type' table
-CREATE TABLE dim_type (
-    type_id SERIAL PRIMARY KEY,
-    type_name TEXT,
-    CONSTRAINT uq_dim_type_unique_values UNIQUE (type_name)
+-- Create the 'category' table
+CREATE TABLE dim_category (
+    category_id SERIAL PRIMARY KEY,
+    category_name TEXT,
+    CONSTRAINT uq_dim_category_unique_values UNIQUE (category_name)
 );
 
 -- Create the 'sentiment' table
@@ -48,9 +48,9 @@ CREATE TABLE fact_news (
     news_id INT REFERENCES dim_news_detail (news_id),
     time_id INT REFERENCES dim_time (time_id),
     source_id INT REFERENCES dim_source (source_id),
-    type_id INT REFERENCES dim_type (type_id),
+    category_id INT REFERENCES dim_category (category_id),
     sentiment_id INT REFERENCES dim_sentiment (sentiment_id),
-    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (news_id, time_id, source_id, type_id)
+    CONSTRAINT uq_fact_sheet_unique_values UNIQUE (news_id, time_id, source_id, category_id)
 );
 
 -- Optional: Query to check the created tables in the current database schema

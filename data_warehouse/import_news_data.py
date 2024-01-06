@@ -29,12 +29,12 @@ insert_time_query = sql.SQL("""
     RETURNING time_id;
 """)
 
-insert_type_query = sql.SQL("""
-    INSERT INTO dim_type (type_name)
+insert_category_query = sql.SQL("""
+    INSERT INTO dim_category (category_name)
     VALUES (%s)
-    ON CONFLICT ON CONSTRAINT uq_dim_type_unique_values
-    DO UPDATE SET type_name = EXCLUDED.type_name
-    RETURNING type_id;
+    ON CONFLICT ON CONSTRAINT uq_dim_category_unique_values
+    DO UPDATE SET category_name = EXCLUDED.category_name
+    RETURNING category_id;
 """)
 
 insert_sentiment_query = sql.SQL("""
@@ -65,7 +65,7 @@ insert_news_detail_query = sql.SQL("""
 """)
 
 insert_data_query = sql.SQL("""
-    INSERT INTO fact_news (news_id, time_id, source_id, type_id, sentiment_id)
+    INSERT INTO fact_news (news_id, time_id, source_id, category_id, sentiment_id)
     VALUES (%s, %s, %s, %s, %s)
     ON CONFLICT ON CONSTRAINT uq_fact_sheet_unique_values
     DO NOTHING;
@@ -103,10 +103,10 @@ def insert_time(data, cursor):
     return time_id
 
 
-def insert_type(data, cursor):
-    cursor.execute(insert_type_query, (data,))
-    type_id = cursor.fetchone()[0]
-    return type_id
+def insert_category(data, cursor):
+    cursor.execute(insert_category_query, (data,))
+    category_id = cursor.fetchone()[0]
+    return category_id
 
 
 def insert_sentiment(data, cursor):
@@ -137,16 +137,16 @@ def insert_news_detail(data, cursor):
     return news_id
 
 
-def insert_data(data_type, data):
+def insert_data(category, data):
     try:
         cursor = connection.cursor()
         time_id = insert_time(data, cursor)
-        type_id = insert_type(data_type, cursor)
+        category_id = insert_category(category, cursor)
         sentiment_id = insert_sentiment(data, cursor)
         source_id = insert_source(data, cursor)
         news_id = insert_news_detail(data, cursor)
 
-        cursor.execute(insert_data_query, (news_id, time_id, source_id, type_id, sentiment_id))
+        cursor.execute(insert_data_query, (news_id, time_id, source_id, category_id, sentiment_id))
         connection.commit()
         print("Data successfully inserted into the database.")
     except Exception as e:
