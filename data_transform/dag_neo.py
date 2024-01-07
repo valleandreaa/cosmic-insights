@@ -196,12 +196,12 @@ def insert_into_type(*args, **kwargs):
     # Database connection and insertion
     type_ids = []
     conn = BaseHook.get_connection('rds_postgres_conn').get_uri()
-
+    print()
     with psycopg2.connect(conn) as connection:
         with connection.cursor() as cursor:
 
             insert_query = """
-            INSERT INTO dim_type (description, class_range) VALUES (%s, %s)
+            INSERT INTO dim_type (type_name, description) VALUES (%s, %s)
             ON CONFLICT ON CONSTRAINT uq_dim_type_unique_values
             DO UPDATE SET type_name = EXCLUDED.type_name
             RETURNING type_id;
