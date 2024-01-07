@@ -230,7 +230,7 @@ default_args = {
 with DAG(
         dag_id='weather_airflow',
         default_args=default_args,
-        schedule_interval='@daily',
+        schedule_interval='0 0,12 * * *',  # Every 12 hours at 00:00 and 12:00
         start_date=datetime(2023, 3, 1),
         catchup=False
 ) as dag:

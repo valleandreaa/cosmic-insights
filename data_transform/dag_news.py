@@ -173,11 +173,11 @@ def insert_into_type(*args, **kwargs):
                 for article in  article_list:
                     # Insert type data into the database
                     cursor.execute("""
-                        INSERT INTO dim_type (type_name)
+                        INSERT INTO dim_category (category_name)
                         VALUES (%s)
-                        ON CONFLICT (type_name)
-                        DO UPDATE SET type_name = EXCLUDED.type_name
-                        RETURNING type_id;
+                        ON CONFLICT (category_name)
+                        DO UPDATE SET category_name = EXCLUDED.category_name
+                        RETURNING category_id;
                     """, (entry_type,))
                     type_id = cursor.fetchone()[0]
                     type_ids.append(type_id)
@@ -210,7 +210,7 @@ def insert_into_fact_news(*args, **kwargs):
 
                 # Insert fact news data into the database
                 cursor.execute("""
-                    INSERT INTO fact_news (news_id, time_id, source_id, type_id, sentiment_id)
+                    INSERT INTO fact_news (news_id, time_id, source_id, category_id, sentiment_id)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (news_id, time_id, source_id, type_id, sentiment_id))
 
