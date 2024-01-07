@@ -6,6 +6,7 @@ import torch.optim as optim
 from neural_network import NeuralNetwork
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+import joblib
 
 
 # Function to fetch NEO data
@@ -71,6 +72,9 @@ def prepare_data(df_data):
     scaler = StandardScaler()
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
+
+    # Save the fitted scaler
+    joblib.dump(scaler, 'scaler.pkl')
 
     # Convert data to PyTorch tensors
     x_train_tensor = torch.tensor(x_train, dtype=torch.float32)
