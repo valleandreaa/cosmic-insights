@@ -234,11 +234,12 @@ with DAG(
         start_date=datetime(2023, 3, 1),
         catchup=False
 ) as dag:
+    today_date = datetime.now().strftime('%Y-%m-%d')
     read_from_s3 = PythonOperator(
         task_id='read_from_s3',
         python_callable=read_json_from_s3,
         op_kwargs={
-            'key': 'weather-data-2023-12-20.json',
+            'key': f'weather-data-{today_date}.json',
             'bucket_name': 'swagger23',
         }
     )

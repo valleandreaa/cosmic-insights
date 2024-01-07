@@ -6,7 +6,7 @@ from airflow.hooks.base_hook import BaseHook
 from datetime import datetime, timedelta
 import json
 from textblob import TextBlob
-
+from datetime import datetime
 
 # Function to read JSON data from an S3 bucket
 def read_json_from_s3(*args, **kwargs):
@@ -44,7 +44,7 @@ def insert_into_time(*args, **kwargs):
                     for fmt in formats_to_try:
                         try:
                             published_at  = datetime.strptime(article['published_at'], fmt)
-                            break  
+                            break
                         except ValueError:
                             pass
 
@@ -234,11 +234,14 @@ with DAG(
         start_date=datetime(2023, 3, 1),
         catchup=False
 ) as dag:
+
+    today_date = datetime.now().strftime('%Y-%m-%d')
+
     read_from_s3 = PythonOperator(
         task_id='read_from_s3',
         python_callable=read_json_from_s3,
         op_kwargs={
-            'key': 'space-news-data-2023-12-20T05.json',
+            'key': f'space-news-data-{today_date}.json',
             'bucket_name': 'swagger23',
         }
     )
@@ -277,9 +280,9 @@ with DAG(
         python_callable=insert_into_fact_news,
         op_kwargs={}
     )
-    
+
 
 
 # Setting up task dependencies
-read_from_s3 >> [insert_source, insert_time, insert_news_detail, insert_sentiment, insert_type] 
+read_from_s3 >> [insert_source, insert_time, insert_news_detail, insert_sentiment, insert_type]
 [insert_source, insert_time, insert_news_detail, insert_sentiment, insert_type] >>  insert_fact_news

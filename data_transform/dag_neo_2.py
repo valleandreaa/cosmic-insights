@@ -297,7 +297,7 @@ default_args = {
 }
 
 with DAG(
-        dag_id='neo_airflow_1',
+        dag_id='neo_airflow_2',
         default_args=default_args,
         schedule_interval='@daily',
         start_date=datetime(2023, 3, 1),
@@ -310,7 +310,7 @@ with DAG(
         task_id='read_from_s3',
         python_callable=read_json_from_s3,
         op_kwargs={
-            'key': f'nasa-data-{today_date}-.json',
+            'key': f'nasa-data-{today_date}-2.json',
             'bucket_name': 'swagger23',
         }
     )
