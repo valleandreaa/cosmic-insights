@@ -6,7 +6,6 @@ import torch.nn as nn
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 class LSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(LSTM, self).__init__()
@@ -22,7 +21,6 @@ class LSTM(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-
 def create_sequences(data, seq_length):
     sequences = []
     for i in range(len(data) - seq_length):
@@ -30,19 +28,16 @@ def create_sequences(data, seq_length):
         sequences.append(sequence)
     return np.array(sequences)
 
-
-def forecast_solar_wind(df_solar_wind_mag, sequence_length=10, hidden_size=64, num_layers=2, num_epochs=3,
-                        num_steps_ahead=5):
-    df_solar_wind_mag = df_solar_wind_mag[['bx_gsm']].dropna()
+def forecast_variable(data, variable, sequence_length=10, hidden_size=64, num_layers=2, num_epochs=100, num_steps_ahead=50):
+    data = data[[variable]].dropna()
     scaler = MinMaxScaler()
-    scaled_data = scaler.fit_transform(df_solar_wind_mag)
+    scaled_data = scaler.fit_transform(data)
 
     sequences = create_sequences(scaled_data, sequence_length)
     x = torch.from_numpy(sequences[:, :-1]).float()
     y = torch.from_numpy(sequences[:, -1][:, -1]).float()
 
-    model = LSTM(input_size=len(df_solar_wind_mag.columns), hidden_size=hidden_size, num_layers=num_layers,
-                 output_size=1).to(device)
+    model = LSTM(input_size=1, hidden_size=hidden_size, num_layers=num_layers, output_size=1).to(device)
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -71,6 +66,6 @@ def forecast_solar_wind(df_solar_wind_mag, sequence_length=10, hidden_size=64, n
             future_sequence = new_input
 
         future_predictions = scaler.inverse_transform([future_predictions])
-        predictions_df = pd.DataFrame(future_predictions.T, columns=['Predicted_Values'])
+        predictions_df = pd.DataFrame(future_predictions.T)
 
     return predictions_df

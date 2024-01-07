@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import logging
 import json
 from datetime import datetime, timedelta
+
 # Function to read JSON data from an S3 bucket
 def read_json_from_s3(*args, **kwargs):
     # Extracting task instance and required parameters
