@@ -35,21 +35,23 @@ def insert_into_time_dim(*args, **kwargs):
 
     # Parsing time data
     for asteroid in near_earth_objects:
+        close_approach_data = asteroid.get('close_approach_data', [])
 
-        observation_timestamp = asteroid.get('close_approach_data')[0].get('close_approach_date_full')
+        for approach in close_approach_data:
+            observation_timestamp = approach.get('close_approach_date_full')
 
-        if observation_timestamp:
+            if observation_timestamp:
 
-            observation_datetime = datetime.strptime(observation_timestamp, '%Y-%b-%d %H:%M')
-            time_list.append([
-                observation_datetime.year,
-                observation_datetime.month,
-                (observation_datetime.month - 1) // 3 + 1,
-                observation_datetime.isocalendar()[1],
-                observation_datetime.day,
-                observation_datetime.hour,
-                observation_datetime.minute
-            ])
+                observation_datetime = datetime.strptime(observation_timestamp, '%Y-%b-%d %H:%M')
+                time_list.append([
+                    observation_datetime.year,
+                    observation_datetime.month,
+                    (observation_datetime.month - 1) // 3 + 1,
+                    observation_datetime.isocalendar()[1],
+                    observation_datetime.day,
+                    observation_datetime.hour,
+                    observation_datetime.minute
+                ])
 
     # Database connection and insertion
     time_ids = []
