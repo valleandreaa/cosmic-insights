@@ -1,8 +1,5 @@
 import pandas as pd
 import requests
-import torch
-import torch.nn as nn
-from sklearn.preprocessing import StandardScaler
 
 # Assuming NeuralNetwork is defined in neural_network.py
 from neural_network import NeuralNetwork
@@ -20,6 +17,7 @@ def fetch_neo_data():
         print("Failed to retrieve data from the API")
         return None
 
+
 # Function to extract relevant data for inference
 def extract_data_for_inference(neo_data):
     extracted_data_list = []
@@ -30,7 +28,8 @@ def extract_data_for_inference(neo_data):
         inclination = orbital_data.get('inclination', None)
         velocity = float(orbital_data.get('perihelion_distance', 0)) * float(orbital_data.get('mean_motion', 0))
         closest_approach_data = asteroid.get('close_approach_data', [])
-        distance_from_earth = float(closest_approach_data[0]['miss_distance'].get('kilometers', 0)) if closest_approach_data else 0
+        distance_from_earth = float(
+            closest_approach_data[0]['miss_distance'].get('kilometers', 0)) if closest_approach_data else 0
 
         extracted_data_list.append({
             'eccentricity': eccentricity,
@@ -42,6 +41,7 @@ def extract_data_for_inference(neo_data):
 
     return pd.DataFrame(extracted_data_list)
 
+
 # Function to load the trained PyTorch model
 def load_model(model_path):
     model = NeuralNetwork(5)
@@ -49,10 +49,12 @@ def load_model(model_path):
     model.eval()
     return model
 
+
 # Function to prepare data for inference
 def prepare_data_for_inference(scaler, new_data):
     scaled_data = scaler.transform(new_data)
     return torch.tensor(scaled_data, dtype=torch.float32)
+
 
 # Function to perform inference
 def infer_and_label(model, data_tensor):

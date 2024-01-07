@@ -63,7 +63,7 @@ def lambda_handler(event, context):
 
     # Create a filename with current date
     date_str = current_datetime.strftime("%Y-%m-%d")
-    filename = f"neo-data-{date_str}-1.json"
+    filename = f"nasa-data-{date_str}-.json"
 
     # Initialising S3 Client
     s3_client = boto3.client('s3')
