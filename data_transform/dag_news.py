@@ -230,7 +230,7 @@ default_args = {
 with DAG(
         dag_id='news_airflow',
         default_args=default_args,
-        schedule_interval='@daily',
+        schedule_interval='0 0,12 * * *',
         start_date=datetime(2023, 3, 1),
         catchup=False
 ) as dag:
