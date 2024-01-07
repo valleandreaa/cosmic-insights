@@ -1,8 +1,5 @@
 # Cosmic Insights Navigating Threats and Wonders
 
-
-# Cosmic Insights
-
 ## Overview
 
 **Cosmic Insights** is an advanced data-driven project that provides comprehensive insights into near-earth objects (NEOs) and space weather phenomena. Using data from NASA's NEO APIs and space weather sources, the project offers detailed analysis and predictions about asteroid characteristics and their potential threats, along with critical information on space weather and its impacts.
